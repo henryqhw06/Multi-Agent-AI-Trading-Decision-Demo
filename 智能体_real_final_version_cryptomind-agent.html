@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>CryptoMind - AI Trading Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 引入专业字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg-app: #030712;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card-border: rgba(255, 255, 255, 0.08);
+      --bg-input: rgba(2, 6, 23, 0.6);
+      --primary-gradient: linear-gradient(135deg, #10b981, #06b6d4);
+      --accent-green: #10b981;
+      --accent-cyan: #06b6d4;
+      --accent-red: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; }
+    
+    /* 全局滚动条美化 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.05) 0px, transparent 50%);
+      color: var(--text-main);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    header {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--bg-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(3, 7, 18, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--primary-gradient);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 16px;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    .brand-text h1 { 
+      margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; 
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-text p { margin: 2px 0 0; font-size: 11px; color: var(--text-muted); }
+
+    .right-controls { display: flex; gap: 10px; align-items: center; }
+    .pill-btn {
+      font-size: 11px; padding: 5px 12px; border-radius: 6px;
+      border: 1px solid #374151; background: rgba(31, 41, 55, 0.5); 
+      color: var(--text-muted); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pill-btn:hover { border-color: var(--accent-cyan); color: #fff; }
+    
+    .badge {
+      font-size: 11px; padding: 3px 10px;
+      border-radius: 20px; border: 1px solid #374151; color: var(--text-muted);
+      background: rgba(17, 24, 39, 0.5);
+      font-family: var(--font-mono);
+      white-space: nowrap; 
+    }
+    .badge.green {
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.1);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Main Layout */
+    main {
+      flex: 1; display: flex; flex-direction: column;
+      padding: 16px; gap: 16px;
+    }
+    @media (min-width: 1024px) { main { flex-direction: row; } }
+
+    .left-pane { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+    @media (min-width: 1024px) { .left-pane { width: 42%; } }
+    .right-pane { width: 100%; }
+    @media (min-width: 1024px) { .right-pane { width: 58%; } }
+
+    /* Card Styling */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(8px);
+    }
+    
+    .section-title { 
+      font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #fff; 
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+      content: ''; display: block; width: 3px; height: 14px; 
+      background: var(--accent-cyan); border-radius: 2px;
+    }
+    .section-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+
+    /* Forms & Controls */
+    label { 
+      display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; font-weight: 500; 
+    }
+    input, textarea, select {
+      width: 100%; padding: 10px 12px; font-size: 12px;
+      border-radius: 8px; border: 1px solid #374151;
+      background: var(--bg-input); color: #fff; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: var(--font-mono);
+    }
+    input:focus, textarea:focus, select:focus { 
+      border-color: var(--accent-cyan); 
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    }
+    textarea { resize: vertical; min-height: 70px; line-height: 1.4; }
+    
+    /* Buttons */
+    button.primary {
+      width: 100%; padding: 12px; font-size: 14px;
+      border-radius: 8px; border: none;
+      background: var(--primary-gradient);
+      color: #fff; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      margin-top: 8px;
+    }
+    button.primary:hover:not(:disabled) {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+      opacity: 0.95;
+    }
+    button.primary:active:not(:disabled) { transform: scale(0.98); }
+    button.primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.8); }
+
+    .helper { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row > * { flex: 1; }
+
+    /* Agent Grid & Styles */
+    .agent-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 768px) { .agent-grid { grid-template-columns: 1fr 1fr; } }
+    
+    .agent-card {
+      border-radius: 10px; 
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(15, 23, 42, 0.6);
+      padding: 12px; display: flex; flex-direction: column; gap: 8px;
+      font-size: 12px;
+      transition: border-color 0.3s;
+    }
+    
+    .agent-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .agent-name { font-weight: 600; color: #e2e8f0; }
+    .agent-id {
+      font-size: 9px; padding: 1px 6px; border-radius: 4px;
+      background: rgba(255,255,255,0.05); color: var(--text-muted);
+      font-family: var(--font-mono); letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .agent-role { font-size: 11px; color: #64748b; margin-top: 2px; }
+    
+    /* Status Indicators */
+    .status {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      border: 1px solid #374151; color: #9ca3af; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .status.running { 
+      border-color: var(--accent-cyan); 
+      color: var(--accent-cyan); 
+      background: rgba(6, 182, 212, 0.1);
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+      animation: pulse 1.5s infinite;
+    }
+    .status.done { 
+      border-color: #374151; color: #d1d5db; background: rgba(55, 65, 81, 0.3); 
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+      70% { box-shadow: 0 0 0 4px rgba(6, 182, 212, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+    }
+
+    .agent-body {
+      margin-top: 6px; padding: 10px; border-radius: 6px;
+      background: #020617; border: 1px solid #1e293b;
+      max-height: 150px; overflow-y: auto; color: #cbd5e1;
+      font-size: 12px; line-height: 1.6;
+      font-family: var(--font-mono); /* 使用等宽字体增加代码感 */
+    }
+    .agent-body p { margin: 0 0 4px 0; animation: fadeIn 0.3s ease-out; }
+    .agent-body span.dim { color: #4b5563; font-style: italic; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Code/JSON Output */
+    pre.json-output {
+      background: #0b101a; border-radius: 8px; padding: 12px;
+      border: 1px solid #1e293b; color: #a5b4fc;
+      font-family: var(--font-mono); font-size: 11px; 
+      overflow: auto; max-height: 250px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* Layer Separators */
+    .layer-title-row {
+      display: flex; align-items: center; gap: 10px;
+      margin: 20px 0 10px; font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+    }
+    .layer-line { height: 1px; flex: 1; background: linear-gradient(90deg, transparent, #334155, transparent); }
+    
+    /* History List */
+    .history-list-item {
+      font-size: 11px; border-bottom: 1px solid #1e293b;
+      padding: 8px 0; transition: background 0.2s;
+    }
+    .history-list-item:hover { background: rgba(255,255,255,0.02); }
+    .history-list-item b { color: var(--accent-green); }
+    
+    /* ECharts Container Override */
+    #chart { border-radius: 8px; overflow: hidden; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">CM</div>
+      <div class="brand-text">
+        <h1>CryptoMind AI</h1>
+        <p>加密货币量化交易决策引擎</p>
+      </div>
+    </div>
+    <div class="right-controls">
+      <span class="badge">Model: DeepSeek Chat</span>
+    </div>
+    <!-- 顶部工作流进度条 -->
+    <div id="workflowProgressContainer" 
+        style="
+          width:100%;
+          height:3px;
+          background:#1e293b;
+          position:absolute;
+          bottom:0;
+          left:0;
+          overflow:hidden;
+          display:none;
+        ">
+      <div id="workflowProgressBar"
+          style="
+            height:100%;
+            width:0%;
+            background: var(--primary-gradient);
+            box-shadow: 0 0 10px var(--accent-cyan);
+            transition:width 0.35s ease;
+          ">
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 左侧：K 线 + 控制面板 + 历史决策 -->
+    <section class="left-pane">
+      <div class="card">
+        <div class="section-title">实时市场数据 (Binance)</div>
+        <div class="section-subtitle">
+          最近 60 根 1m K 线，叠加 MA7 / MA25 / BB(20,2)
+        </div>
+        <div id="chart" style="width: 100%; height: 280px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">控制面板 (Control Panel)</div>
+        <div class="section-subtitle">
+          工作流自动处理分析
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:12px;">
+          <label>
+            交易对 （Binance Symbol，例如 BTCUSDT）
+            <input id="symbolInput" value="BTCUSDT" style="font-weight:600; letter-spacing:1px;" />
+          </label>
+
+          <label>
+            DeepSeek API Key (本地储存)
+            <input id="apiKeyInput" type="password" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" />
+          </label>
+
+          <label>
+            当前持仓 (Current Position)
+            <input id="positionInput" placeholder="示例：多 98000 / 空 100200 / 留空为无持仓" />
+          </label>
+
+          <!-- 风控模式选择 -->
+          <label>
+            风控模式 (Risk Level)
+            <select id="riskLevel">
+              <option value="aggressive">激进 (Aggressive)</option>
+              <option value="moderate" selected>中性 (Moderate)</option>
+              <option value="conservative">稳健 (Conservative)</option>
+            </select>
+          </label>
+
+          <!-- 显示风控模式颜色提示 -->
+          <div id="riskLevelBadge" class="badge" style="margin-top:0px; align-self:flex-start;">
+            当前风控：中性 (Moderate)
+          </div>
+
+          <div class="helper">
+            <span style="color:var(--accent-cyan)">ℹ</span> 持仓示例：<b>多 98000</b> (做多) / <b>空 100200</b> (做空) / 留空无持仓。
+          </div>
+
+          <button class="primary" id="startBtn">⚡ 开始 AI 市场分析 (Execute)</button>
+
+          <div id="runStatus" class="helper" style="min-height:18px; color:var(--accent-green);"></div>
+
+          <div id="decisionBlock" style="margin-top:12px;display:none; border-top:1px solid var(--bg-card-border); padding-top:12px;">
+            <div class="row" style="margin-bottom:8px; justify-content:space-between;">
+              <span class="section-title" style="font-size:13px;">CEO 最终决策</span>
+              <span id="decisionMeta" class="badge green"></span>
+            </div>
+            <pre class="json-output" id="decisionJson"></pre>
+
+            <!-- CEO 决策解释 -->
+            <div id="ceoExplanationBlock" style="margin-top:12px;display:none;">
+              <div class="section-title" style="font-size:13px;">CEO 策略解读 (AI Analysis)</div>
+              <div class="section-subtitle">
+                AI 基于多层智能体输出生成的自然语言解释。
+              </div>
+              <div id="ceoExplanationText"
+                  class="agent-body"
+                  style="
+                    max-height:180px;
+                    background:rgba(15,23,42,0.85);
+                    border:1px solid #29303a;
+                  ">
+              </div>
+
+            </div>
+          </div>
+
+          <div id="historyBlock" style="margin-top:16px;">
+            <div class="row" style="margin-bottom:8px; align-items:center; justify-content:space-between;">
+              <span class="section-title" style="font-size:13px;">历史决策记忆 (Memory)</span>
+              <button
+                id="clearHistoryBtn"
+                class="pill-btn"
+                style="padding:3px 10px;font-size:10px;"
+              >
+                清空记录
+              </button>
+            </div>
+
+            <div class="helper" id="historySummary" style="margin-bottom:6px;"></div>
+            <div id="historyList" style="margin-top:4px;max-height:160px;overflow:auto; border-top:1px solid var(--bg-card-border);"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 右侧：多智能体面板 -->
+    <section class="right-pane card">
+      <div class="section-title">多智能体决策引擎 (Multi-Agent Engine)</div>
+      <div class="section-subtitle">
+        决策流程：多层分析 → 综合汇总 → 风险评估 → 最终决策
+      </div>
+      <!-- 增加一点 padding 防止滚动条遮挡 -->
+      <div id="agentsContainer" style="max-height:calc(100vh - 180px);overflow-y:auto;padding-right:6px;"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+/* ================= 风控模式配置（新增） ================= */
+
+const RISK_CONFIGS = {
+  aggressive:  { maxSLDeviation:0.12, minTPDeviation:0.006, minRR:0.2 },
+  moderate:    { maxSLDeviation:0.09, minTPDeviation:0.008, minRR:0.3 },
+  conservative:{ maxSLDeviation:0.07, minTPDeviation:0.010, minRR:0.4 }
+};
+
+const RISK_BADGE_STYLE = {
+  aggressive:  { text:"激进 (Aggressive)",     color:"#ef4444", bg:"rgba(239,68,68,0.15)" },
+  moderate:    { text:"中性 (Moderate)",        color:"#10b981", bg:"rgba(16,185,129,0.15)" },
+  conservative:{ text:"稳健 (Conservative)",    color:"#3b82f6", bg:"rgba(59,130,246,0.15)" }
+};
+
+// 初始化风控 Badge
+window.addEventListener("load", () => {
+  const sel = document.getElementById("riskLevel");
+  const badge = document.getElementById("riskLevelBadge");
+  function apply(mode){
+    const cfg = RISK_BADGE_STYLE[mode];
+    badge.textContent = "当前风控：" + cfg.text;
+    badge.style.color = cfg.color;
+    badge.style.borderColor = cfg.color;
+    badge.style.background = cfg.bg;
+  }
+  apply(sel.value);
+  sel.addEventListener("change",()=>apply(sel.value));
+});
+
+  
+/* ======================= CryptoMind 知识库（Level-3 动态检索） ======================= */
+
+/**
+ * 全局知识库（可自行扩写）
+ * 每个 key 下都是该场景的核心交易逻辑
+ */
+const KNOWLEDGE_BASE = {
+  rsi_overbought: {
+    summary: "RSI 超过 70 往往意味着短期超买，行情可能出现回调或震荡。",
+    guidance: [
+      "出现长上影、缩量上涨时谨慎追多",
+      "突破失败时，做空或减仓更合理",
+      "强势趋势中 RSI 可长时间维持高位，并不必然立即反转"
+    ]
+  },
+  rsi_oversold: {
+    summary: "RSI 低于 30 往往意味着短期超卖，行情可能出现反弹或技术性修复。",
+    guidance: [
+      "长下影针刺后反弹概率上升",
+      "若跌破关键支撑位，则下跌趋势可能加速",
+      "强下降趋势中 RSI 可长时间钝化，不宜盲目抄底"
+    ]
+  },
+  trend_up: {
+    summary: "趋势向上意味着价格结构稳健，多头在占优。",
+    guidance: [
+      "MA7 上穿 MA25 且斜率向上 → 趋势更可信",
+      "回踩 MA7/MA25 不破常是较优的跟随买点",
+      "放量突破前高 → 趋势延续概率更高"
+    ]
+  },
+  trend_down: {
+    summary: "趋势向下意味着空头占优，多数反弹是逃命波。",
+    guidance: [
+      "MA7 下穿 MA25 且斜率向下 → 空头趋势确认",
+      "反弹接近 MA7/MA25 容易被压制，是做空机会而非追多",
+      "出现加速下跌时，不宜用大仓位抄底"
+    ]
+  },
+  range_market: {
+    summary: "震荡区间中，方向性较弱，假突破概率较高。",
+    guidance: [
+      "区间上沿做空、下沿做多胜率通常高于追突破",
+      "单根放量突破但很快被打回区间 → 高概率假突破",
+      "布林带口收窄时，震荡之后往往会迎来趋势"
+    ]
+  },
+  high_volatility: {
+    summary: "高波动意味着风险与收益同时放大，需要更谨慎的风险控制。",
+    guidance: [
+      "止损距离相对要更紧，或降低持仓杠杆",
+      "避免在极端波动时重仓追涨杀跌",
+      "更适合短线博弈或等波动收敛后再布局"
+    ]
+  },
+  low_volatility: {
+    summary: "低波动通常意味着市场处于酝酿阶段，未来波动可能放大。",
+    guidance: [
+      "布林带变窄代表价格被压缩，后续容易出现方向性突破",
+      "趋势型交易者可以耐心等待突破后再进场",
+      "区间交易策略在低波动时效果更好"
+    ]
+  }
+};
+
+/**
+ * 根据当前 snapshot 动态选择最相关的知识片段
+ * snapshot 参数包含：rsi14, regime, volPct
+ */
+function getRelevantKB(snapshot) {
+  const kb = {};
+
+  // RSI 相关
+  if (snapshot.rsi14 != null) {
+    if (snapshot.rsi14 >= 70) kb.rsi_overbought = KNOWLEDGE_BASE.rsi_overbought;
+    if (snapshot.rsi14 <= 30) kb.rsi_oversold = KNOWLEDGE_BASE.rsi_oversold;
+  }
+
+  // 趋势相关
+  if (snapshot.regime === "trend_up") kb.trend_up = KNOWLEDGE_BASE.trend_up;
+  if (snapshot.regime === "trend_down") kb.trend_down = KNOWLEDGE_BASE.trend_down;
+  if (snapshot.regime === "range") kb.range_market = KNOWLEDGE_BASE.range_market;
+
+  // 波动率相关（这里 volPct 是年化/相对% 的一个粗略 proxy）
+  if (snapshot.volPct != null) {
+    if (snapshot.volPct >= 1.5) kb.high_volatility = KNOWLEDGE_BASE.high_volatility;
+    if (snapshot.volPct <= 0.4) kb.low_volatility = KNOWLEDGE_BASE.low_volatility;
+  }
+
+  return kb;
+}
+
+/* ======================= 基础配置 ======================= */
+// TODO: Replace with your own Cloudflare Worker proxy
+const WORKER_BASE = "https://your-worker-domain.workers.dev";
+
+const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
+
+// 更新颜色以匹配新主题
+const UP_COLOR = "#10b981"; // Emerald 500
+const DOWN_COLOR = "#ef4444"; // Red 500
+const UP_BORDER = "#10b981";
+const DOWN_BORDER = "#ef4444";
+
+const HISTORY_KEY = "cm_decisions_v1";
+
+// ===== 顶部进度条控制 =====
+function showProgressBar() {
+  const bar = document.getElementById("workflowProgressContainer");
+  if (bar) bar.style.display = "block";
+}
+
+function setProgress(percent) {
+  const bar = document.getElementById("workflowProgressBar");
+  if (bar) bar.style.width = percent + "%";
+}
+
+function hideProgressBar() {
+  const bar = document.getElementById("workflowProgressContainer");
+  if (!bar) return;
+  setProgress(100);
+
+  // 1秒后渐隐
+  setTimeout(() => {
+    bar.style.transition = "opacity 0.6s";
+    bar.style.opacity = 0;
+    setTimeout(() => {
+      bar.style.display = "none";
+      bar.style.opacity = 1;
+      bar.style.transition = "width 0.35s ease"; // 还原
+      setProgress(0);
+    }, 700);
+  }, 1000);
+}
+
+async function fetchWithRetry(url, options = {}, retries = 5, backoff = 300) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+
+      // 429 / 500 / 502 / 503 也属于可重试
+      if (!res.ok && [429, 500, 502, 503, 504].includes(res.status)) {
+        throw new Error("HTTP " + res.status);
+      }
+
+      return res; // 成功返回
+    } catch (err) {
+      if (attempt === retries) {
+        throw err; // 达到最大次数才报错
+      }
+      const delay = backoff * Math.pow(1.6, attempt);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+/* ======================= DeepSeek Client（并发控制，高档） ======================= */
+class DeepSeekClient {
+  constructor(maxConcurrent = 10) {   // High：10
+    this.maxConcurrent = maxConcurrent;
+    this.active = 0;
+    this.queue = [];
+  }
+
+  _runNext() {
+    if (this.active >= this.maxConcurrent) return;
+    const item = this.queue.shift();
+    if (!item) return;
+    this.active++;
+    item()
+      .catch(() => {})  // 错误交给调用方
+      .finally(() => {
+        this.active--;
+        this._runNext();
+      });
+  }
+
+  call(apiKey, systemPrompt, userPrompt) {
+    return new Promise((resolve, reject) => {
+      const task = async () => {
+        try {
+          const targetUrl = DEEPSEEK_ENDPOINT;
+          const proxyUrl = WORKER_BASE + "/proxy?target=" + encodeURIComponent(targetUrl);
+          const res = await fetchWithRetry(proxyUrl, {
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json",
+              "Authorization":"Bearer "+apiKey
+            },
+            body: JSON.stringify({
+              model:"deepseek-chat",
+              messages:[
+                {role:"system",content:systemPrompt},
+                {role:"user",content:userPrompt}
+              ]
+            })
+          });
+          if(!res.ok){
+            const txt = await res.text();
+            throw new Error("DeepSeek 调用失败: HTTP "+res.status+" | "+txt);
+          }
+          const data = await res.json();
+          const content = (data.choices?.[0]?.message?.content || "").trim();
+          resolve(content);
+        } catch (e) {
+          reject(e);
+        }
+      };
+
+      this.queue.push(task);
+      this._runNext();
+    });
+  }
+}
+
+/* ======================= Agent 管理 & 渲染 ======================= */
+
+const agents = [
+  { id:"scalper",      name:"短线分析师",       layer:1, role:"看 1m 内价格与节奏，刻画超短线情绪与方向。",          status:"idle", messages:[] },
+  { id:"trend",        name:"趋势分析师",       layer:1, role:"观测 MA/BB 宽度与斜率，识别趋势/震荡/反转结构。",       status:"idle", messages:[] },
+  { id:"quant",        name:"量化分析师",       layer:1, role:"计算波动率/RSI 等，评估多空信号胜率与性价比。",         status:"idle", messages:[] },
+  { id:"onchain",      name:"链上分析师",       layer:1, role:"示意性刻画链上活跃度/气温，对风险偏好定性。",           status:"idle", messages:[] },
+  { id:"macro",        name:"宏观分析师",       layer:1, role:"模拟宏观流动性与风险情绪，对整体 Beta 仓位给建议。",    status:"idle", messages:[] },
+  { id:"tech_manager", name:"技术总监",         layer:2, role:"整合短线/趋势/量化结论，输出技术面方向与仓位建议。",    status:"idle", messages:[] },
+  { id:"fund_manager", name:"基本面总监",       layer:2, role:"整合链上 + 宏观，对整体风险偏好和配置空间给判断。",     status:"idle", messages:[] },
+  { id:"risk",         name:"风控经理",         layer:3, role:"量化止盈止损与盈亏比 (R:R)，在阈值以下拥有否决权。",   status:"idle", messages:[] },
+  { id:"ceo",          name:"CryptoMind CEO",  layer:4, role:"在风控约束与历史经验下，给出情景化 JSON 决策。",      status:"idle", messages:[] }
+];
+
+class AgentManager {
+  constructor(agents, containerId) {
+    this.agents = agents;
+    this.container = document.getElementById(containerId);
+  }
+
+  reset() {
+    this.agents.forEach(a => { a.status = "idle"; a.messages = []; });
+    this.render();
+  }
+
+  setStatus(id, status) {
+    const ag = this.agents.find(a=>a.id===id);
+    if (!ag) return;
+    ag.status = status;
+    this.render();
+  }
+
+  appendMessage(id, msg) {
+    const ag = this.agents.find(a=>a.id===id);
+    if (!ag) return;
+    ag.messages.push(msg);
+    this.render();
+  }
+
+  getLayerSummary(layer) {
+    return this.agents
+      .filter(a=>a.layer===layer)
+      .map(a=>`【${a.name}】\n${a.messages.join("\n")}`)
+      .join("\n\n");
+  }
+
+  render() {
+    if (!this.container) return;
+    this.container.innerHTML = "";
+    const layers = [1,2,3,4];
+    const layerNames = {
+      1:"第 1 层：分析师",
+      2:"第 2 层：经理层",
+      3:"第 3 层：风控层",
+      4:"第 4 层：决策层（CEO）"
+    };
+    layers.forEach(layer=>{
+      const layerAgents = this.agents.filter(a=>a.layer===layer);
+      if(!layerAgents.length) return;
+      const row = document.createElement("div");
+      row.className = "layer-title-row";
+      row.innerHTML = `<div class="layer-line"></div><div class="layer-label">${layerNames[layer]}</div><div class="layer-line"></div>`;
+      this.container.appendChild(row);
+
+      const grid = document.createElement("div");
+      grid.className = "agent-grid";
+      layerAgents.forEach(agent=>{
+        const statusClass =
+          agent.status==="running" ? "status running" :
+          agent.status==="done"    ? "status done" :
+                                     "status";
+
+        const messagesHtml =
+          agent.messages.length===0
+            ? `<span class="dim">等待本轮决策开始...</span>`
+            : agent.messages.map((m,idx)=>{
+                const prefix = idx>0 ? "<span style='color:#10b981;margin-right:4px;'>➤</span>" : "";
+                return `<p>${prefix}${m.replace(/\n/g,"<br>")}</p>`;
+              }).join("");
+
+        const card = document.createElement("div");
+        card.className = "agent-card";
+        card.id = "agent-"+agent.id;
+        card.innerHTML = `
+          <div class="agent-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="agent-name">${agent.name}</span>
+                <span class="agent-id">${agent.id}</span>
+              </div>
+              <div class="agent-role">${agent.role}</div>
+            </div>
+            <div class="${statusClass}" id="status-${agent.id}">
+              ${agent.status==="idle"?"待命":agent.status==="running"?"分析中...":"已完成"}
+            </div>
+          </div>
+          <div class="agent-body" id="body-${agent.id}">
+            ${messagesHtml}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      this.container.appendChild(grid);
+    });
+  }
+}
+
+/* ======================= 历史决策管理 ======================= */
+class HistoryManager {
+  constructor() {}
+
+  load() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch(e) { return []; }
+  }
+
+  save(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+
+  clear() {
+    try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
+  }
+
+  add(symbol, price, ceoJson) {
+    const arr = this.load();
+    arr.push({
+      timestamp: Date.now(),
+      symbol,
+      price,
+      action: ceoJson.action || "UNKNOWN",
+      decision: ceoJson
+    });
+    while(arr.length>50) arr.shift();
+    this.save(arr);
+    this.render(arr);
+  }
+
+  summarize(arr) {
+    if(!arr.length) return "暂无历史记录。";
+    const total = arr.length;
+    const cnt = {LONG:0,SHORT:0,FLAT:0,OTHER:0};
+    arr.forEach(r=>{
+      const a=(r.action||"").toUpperCase();
+      if(a==="LONG"||a==="SHORT"||a==="FLAT") cnt[a]++; else cnt.OTHER++;
+    });
+    return `共记录 ${total} 次决策：LONG ${cnt.LONG} 次，SHORT ${cnt.SHORT} 次，FLAT ${cnt.FLAT} 次。`;
+  }
+
+  render(arr) {
+    const list    = document.getElementById("historyList");
+    const summary = document.getElementById("historySummary");
+    if (!list || !summary) return;
+    summary.textContent = this.summarize(arr);
+    if(!arr.length){
+      list.innerHTML = `<div class="helper" style="padding:8px 0;">还没有任何历史决策，本机会自动记录最新分析结果（仅存 30 条）。</div>`;
+      return;
+    }
+    const recent = arr.slice(-30).reverse();
+    list.innerHTML = recent.map(r=>{
+      const time = new Date(r.timestamp).toLocaleTimeString();
+      const conf = r.decision?.confidence!=null ? (r.decision.confidence*100).toFixed(0)+"%" : "N/A";
+      const pos  = r.decision?.position_size!=null ? (r.decision.position_size*100).toFixed(0)+"%" : "N/A";
+      return `<div class="history-list-item">
+        <div><span style="color:#64748b;margin-right:6px;">${time}</span> <b>${r.symbol}</b> · Action: <b style="color:${r.action==='LONG'?UP_COLOR:r.action==='SHORT'?DOWN_COLOR:'#9ca3af'}">${r.action}</b> · Conf: ${conf} · 仓位: ${pos}</div>
+        <div style="color:#64748b; margin-top:2px;">价格≈ ${r.price?.toFixed? r.price.toFixed(2): r.price} · Regime: ${r.decision?.regime || "N/A"}</div>
+      </div>`;
+    }).join("");
+  }
+}
+
+/* ======================= 指标 & 图表 ======================= */
+
+class ChartManager {
+  constructor(domId) {
+    this.dom = document.getElementById(domId);
+    this.chart = null;
+  }
+
+  init() {
+    if (!this.dom) return;
+    this.chart = echarts.init(this.dom);
+    const option = {
+      backgroundColor:"transparent",
+      animation:true,
+      grid:{top:20,left:50,right:10,bottom:30},
+      xAxis:{
+        type:"category",
+        data:[],
+        boundaryGap:true,
+        axisLine:{lineStyle:{color:"#374151"}},
+        axisLabel:{color:"#9ca3af",fontSize:10,fontFamily:'JetBrains Mono'},
+        axisTick:{show:false}
+      },
+      yAxis:{
+        type:"value", scale:true,
+        axisLine:{show:false},
+        axisLabel:{color:"#9ca3af",fontSize:10,fontFamily:'JetBrains Mono'},
+        splitLine:{lineStyle:{color:"#1f2937"}}
+      },
+      dataZoom:[
+        {type:"inside",start:0,end:100},
+        {type:"slider",start:0,end:100,bottom:4,height:8,handleSize:8,borderColor:"transparent",backgroundColor:"#111827",fillerColor:"#374151"}
+      ],
+      tooltip:{
+        trigger:"axis",axisPointer:{type:"cross"},
+        backgroundColor:"rgba(2, 6, 23, 0.9)",
+        borderColor:"#1e293b",borderWidth:1,
+        textStyle:{color:"#e5e7eb",fontSize:11,fontFamily:'Inter'},
+        formatter:params=>{
+          const k = params.find(p=>p.seriesType==="candlestick");
+          if(!k) return "";
+          const v = k.data;
+          const extra = params
+            .filter(p=>p.seriesType==="line")
+            .map(p=>`<span style="color:${p.color}">●</span> ${p.seriesName}: ${p.data ? p.data.toFixed(2) : "—"}`)
+            .join("<br/>");
+          return [
+            `<b>${k.axisValue}</b>`,
+            `Open: ${v[0]}`,
+            `Close: ${v[1]}`,
+            `Low: ${v[2]}`,
+            `High: ${v[3]}`,
+            extra
+          ].join("<br/>");
+        }
+      },
+      series:[
+        { name:"K线", type:"candlestick", data:[],
+          itemStyle:{ color:UP_COLOR, color0:DOWN_COLOR, borderColor:UP_BORDER, borderColor0:DOWN_BORDER }
+        },
+        { name:"MA7", type:"line", data:[], smooth:true, showSymbol:false, lineStyle:{width:1,color:"#3b82f6"} },
+        { name:"MA25", type:"line", data:[], smooth:true, showSymbol:false, lineStyle:{width:1,color:"#a855f7"} },
+        { name:"BB Upper", type:"line", data:[], smooth:true, showSymbol:false, lineStyle:{width:1,color:"#f97316",opacity:0.7} },
+        { name:"BB Lower", type:"line", data:[], smooth:true, showSymbol:false, lineStyle:{width:1,color:"#f97316",opacity:0.7,type:"dashed"} }
+      ]
+    };
+    this.chart.setOption(option);
+  }
+
+  updateWithIndicators(klines, closes) {
+    if(!this.chart || !klines.length) return;
+    const xData = klines.map((_,i)=>i.toString());
+    const ohlc = klines.map(k=>[k.open,k.close,k.low,k.high]);
+    const ma7  = calcSeriesSMA(closes,7);
+    const ma25 = calcSeriesSMA(closes,25);
+    const bb   = calcSeriesBollinger(closes,20,2);
+    this.chart.setOption({
+      xAxis:{data:xData},
+      series:[
+        {data:ohlc},
+        {data:ma7},
+        {data:ma25},
+        {data:bb.upper},
+        {data:bb.lower}
+      ]
+    });
+  }
+}
+
+/* 辅助数学函数 */
+function calcSeriesSMA(arr, period){
+  const res = new Array(arr.length).fill(null);
+  for(let i=period-1;i<arr.length;i++){
+    let sum=0; for(let j=i-period+1;j<=i;j++) sum+=arr[j];
+    res[i]=sum/period;
+  }
+  return res;
+}
+function calcSMA(arr,period){
+  if(arr.length<period) return null;
+  const slice = arr.slice(-period);
+  const sum = slice.reduce((s,x)=>s+x,0);
+  return sum/slice.length;
+}
+function calcVolatility(arr){
+  if(arr.length<2) return 0;
+  const mean = arr.reduce((s,x)=>s+x,0)/arr.length;
+  const varSum = arr.reduce((s,x)=>s+(x-mean)*(x-mean),0);
+  return Math.sqrt(varSum/(arr.length-1));
+}
+function calcRSI(arr, period){
+  if(arr.length<=period) return null;
+  let gains=0,losses=0;
+  for(let i=arr.length-period;i<arr.length;i++){
+    const diff = arr[i]-arr[i-1];
+    if(diff>0) gains+=diff; else losses-=diff;
+  }
+  const avgGain = gains/period;
+  const avgLoss = losses/period;
+  if(avgLoss===0) return 100;
+  const rs = avgGain/avgLoss;
+  return 100 - 100/(1+rs);
+}
+function calcSeriesBollinger(arr,period,k){
+  const upper=new Array(arr.length).fill(null);
+  const lower=new Array(arr.length).fill(null);
+  for(let i=period-1;i<arr.length;i++){
+    let sum=0; for(let j=i-period+1;j<=i;j++) sum+=arr[j];
+    const mean=sum/period;
+    let vs=0;  for(let j=i-period+1;j<=i;j++) vs+=(arr[j]-mean)*(arr[j]-mean);
+    const stdev=Math.sqrt(vs/period);
+    upper[i]=mean+k*stdev; lower[i]=mean-k*stdev;
+  }
+  return {upper,lower};
+}
+
+function detectRegime(closes, smaShort, smaLong){
+  if(!smaShort || !smaLong) return "neutral";
+  const last=closes[closes.length-1];
+  const prev=closes[closes.length-6] || closes[0];
+  const changePct=(last-prev)/prev*100;
+  const trendSlope= smaShort - smaLong;
+  const vol=calcVolatility(closes)/last*100;
+  if(trendSlope>0 && changePct>0.3 && vol>0.3) return "trend_up";
+  if(trendSlope<0 && changePct<-0.3 && vol>0.3) return "trend_down";
+  return "range";
+}
+
+/* ======================= 行情 & 持仓解析 ======================= */
+
+async function fetchBinanceKlines(symbol){
+  const url = "https://api.binance.com/api/v3/klines?symbol="+encodeURIComponent(symbol)+"&interval=1m&limit=60";
+  const proxyUrl = WORKER_BASE + "/proxy?target=" + encodeURIComponent(url);
+  const res = await fetch(proxyUrl);
+  if(!res.ok) throw new Error("拉取 Binance K 线失败，HTTP "+res.status);
+  const data = await res.json();
+  const klines = data.map(k=>({
+    openTime:k[0], open:parseFloat(k[1]), high:parseFloat(k[2]),
+    low:parseFloat(k[3]), close:parseFloat(k[4]), volume:parseFloat(k[5])
+  }));
+  const closes = klines.map(k=>k.close);
+  return {klines,closes};
+}
+
+function parsePositionInput(text){
+  text=text.trim();
+  if(!text) return {direction:"none",entry:null};
+  const cleaned=text.replace(/\s+/g,"");
+  if(cleaned.startsWith("多")){
+    const p=parseFloat(cleaned.substring(1));
+    return {direction:"long",entry:isNaN(p)?null:p};
+  }
+  if(cleaned.startsWith("空")){
+    const p=parseFloat(cleaned.substring(1));
+    return {direction:"short",entry:isNaN(p)?null:p};
+  }
+  return {direction:"none",entry:null};
+}
+
+/* ======================= Workflow Runner（并行 + 知识库） ======================= */
+
+class WorkflowRunner {
+  constructor(agentManager, chartManager, historyManager, deepseekClient) {
+    this.agents = agentManager;
+    this.chart = chartManager;
+    this.history = historyManager;
+    this.ds = deepseekClient;
+    this.autoRefreshTimer = null;
+    this.isRefreshing = false;
+  }
+
+  startAutoRefresh() {
+    if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
+    const tick = async () => {
+      if(this.isRefreshing) return;
+      const symbolInput = document.getElementById("symbolInput");
+      if(!symbolInput) return;
+      const symbol = symbolInput.value.trim().toUpperCase();
+      if(!symbol) return;
+      try{
+        this.isRefreshing = true;
+        const {klines,closes} = await fetchBinanceKlines(symbol);
+        this.chart.updateWithIndicators(klines,closes);
+      }catch(e){
+        console.warn("自动刷新行情失败：",e.message);
+      }finally{
+        this.isRefreshing = false;
+      }
+    };
+    tick();
+    this.autoRefreshTimer = setInterval(tick, 10000);
+  }
+
+  async run() {
+    showProgressBar();
+    setProgress(5);
+
+    const runStatus      = document.getElementById("runStatus");
+    const decisionBlock  = document.getElementById("decisionBlock");
+    const decisionJsonEl = document.getElementById("decisionJson");
+    const decisionMeta   = document.getElementById("decisionMeta");
+    const ceoExplainBlock= document.getElementById("ceoExplanationBlock");
+    const ceoExplainText = document.getElementById("ceoExplanationText");
+    const startBtn       = document.getElementById("startBtn");
+
+    decisionBlock.style.display   = "none";
+    decisionJsonEl.textContent    = "";
+    decisionMeta.textContent      = "";
+    ceoExplainBlock.style.display = "none";
+    ceoExplainText.innerHTML      = "";
+
+    const symbol = document.getElementById("symbolInput").value.trim().toUpperCase();
+    const apiKey = document.getElementById("apiKeyInput").value.trim();
+    const posStr = document.getElementById("positionInput").value;
+    const position = parsePositionInput(posStr);
+
+    if(!symbol){ alert("请填写交易对，例如 BTCUSDT"); return; }
+    if(!apiKey){ alert("请填写 DeepSeek API Key"); return; }
+
+    this.agents.reset();
+    runStatus.textContent = "正在通过 Worker 从 Binance 拉取 1m K 线与指标...";
+    startBtn.disabled = true;
+
+    let klines, closes, lastPrice, sma7, sma25, volAbs, volPct, rsi14, regime;
+
+    try {
+      // 1. 行情 & 指标
+      ({klines,closes} = await fetchBinanceKlines(symbol));
+      if(!closes.length) throw new Error("未获取到 K 线数据。");
+      this.chart.updateWithIndicators(klines,closes);
+
+      lastPrice = closes[closes.length-1];
+      sma7   = calcSMA(closes,7);
+      sma25  = calcSMA(closes,25);
+      volAbs = calcVolatility(closes);
+      volPct = volAbs/lastPrice*100;
+      rsi14  = calcRSI(closes,14);
+      regime = detectRegime(closes,sma7,sma25);
+
+      // ===== 动态选择知识库片段（整个 workflow 复用） =====
+      const snapshotForKB = { rsi14, volPct, regime };
+      const relevantKB = getRelevantKB(snapshotForKB);
+      const kbJson = JSON.stringify(relevantKB);
+
+      /* ======================= 第 1 层：分析师并行 ======================= */
+      runStatus.textContent = "第 1 层：分析师并行分析...";
+      const snapshotShort = `
+最新价格：${lastPrice}
+MA7：${sma7}
+MA25：${sma25}
+波动率（Vol%）：${volPct.toFixed(2)}%
+RSI14：${rsi14}
+Regime：${regime}
+
+最近 5 根 1m 收盘价：
+${closes.slice(-5).map(c=>"- "+c).join("\n")}
+`.trim();
+
+      const snapshotMacro = `
+最新价格：${lastPrice}
+MA7：${sma7}
+MA25：${sma25}
+RSI14：${rsi14}
+波动率（Vol%）：${volPct.toFixed(2)}%
+市场状态（Regime）：${regime}
+
+近 60 根 1m 收盘价（仅用于宏观推断）：
+${closes.join(", ")}
+`.trim();
+
+      const promisesLayer1 = [];
+
+      // 短线
+      promisesLayer1.push((async () => {
+        this.agents.setStatus("scalper","running");
+        const sys = `
+你是一名专业的短线交易分析师（Scalper）。
+你特别关注：节奏、最后 1-5 根 K 的动能、微结构、短线反转或突破信号。
+请基于给出的市场 snapshot，输出以下结构化内容：
+
+① 超短线方向判断（偏多 / 偏空 / 中性 + 一句原因）
+② 节奏（momentum）分析：多空是否均衡？
+③ 最近 5 根 K 的微趋势分析
+④ 风险提示（假突破、针刺、高波动、不宜重仓等）
+⑤ 短线建议（适合短线跟随 / 等待确认 / 反向博弈等）
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+        try {
+          const text = await this.ds.call(apiKey, sys, snapshotShort);
+          this.agents.appendMessage("scalper", text);
+        } catch (e) {
+          this.agents.appendMessage("scalper", "⚠ 调用失败：" + e.message);
+        } finally {
+          this.agents.setStatus("scalper","done");
+        }
+      })());
+
+      // 趋势
+      promisesLayer1.push((async () => {
+        this.agents.setStatus("trend","running");
+        const sys = `
+你是一名专业的趋势交易分析师（Trend Analyst）。
+你主要关注均线结构（MA7 / MA25）、RSI、波动率、近期 K 线走势、趋势方向和趋势力度。
+
+请基于给出的市场 snapshot，输出结构化内容：
+
+① 趋势方向判断（上涨趋势 / 下跌趋势 / 区间震荡）+ 简短原因
+② 趋势力度（强 / 中 / 弱）
+③ 关键观察点（突破位 / 回踩位 / 区间上下沿）
+④ 风险提示（趋势衰减 / 假突破 / 波动率变化）
+⑤ 趋势策略建议（追多 / 追空 / 区间高卖低买 / 等待确认）
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+        try {
+          const text = await this.ds.call(apiKey, sys, snapshotShort);
+          this.agents.appendMessage("trend", text);
+        } catch(e) {
+          this.agents.appendMessage("trend", "⚠ 调用失败：" + e.message);
+        } finally {
+          this.agents.setStatus("trend","done");
+        }
+      })());
+
+      // 量化
+      promisesLayer1.push((async () => {
+        this.agents.setStatus("quant","running");
+        const sys = `
+你是一名专业的量化分析师（Quant Analyst）。
+
+你重点分析：
+- 波动率（volatility）
+- 相对强弱指标（RSI14）
+- 均线关系（MA7 vs MA25）
+- 短期价格动能（last 5 closes）
+- 市场 regime（趋势 / 区间）
+
+请基于 snapshot 输出结构化内容：
+
+① 波动率评价（高 / 中 / 低 + 含义）
+② RSI 位置解读（超买 / 超卖 / 中性）
+③ 统计概率偏向（多 / 空 / 中性），提供“为什么”
+④ 当前信号的性价比（入场是否划算？）
+⑤ 量化策略建议（仓位强度 / 执行注意事项）
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+        try {
+          const text = await this.ds.call(apiKey, sys, snapshotShort);
+          this.agents.appendMessage("quant", text);
+        } catch(e) {
+          this.agents.appendMessage("quant", "⚠ 调用失败：" + e.message);
+        } finally {
+          this.agents.setStatus("quant","done");
+        }
+      })());
+
+      // 链上
+      promisesLayer1.push((async () => {
+        this.agents.setStatus("onchain","running");
+        const sys = `
+你是一名链上分析师（On-chain Analyst）。
+
+虽然你没有真实链上数据，但你能基于价格结构、波动、趋势、RSI、情绪等信息
+合理推断链上资金的行为方向（例如：增量资金流入/流出、沉淀、搬砖套利、大户行为）。
+
+请基于 snapshot 输出结构化内容：
+
+① 链上情绪推断（偏热 / 中性 / 偏冷）及一句解释
+② 可能的链上资金行为（流入 / 流出 / 偏观望）
+③ 链上行为对价格的潜在影响（波动放大？趋势延续？区间强化？）
+④ 对交易策略的影响（适合加强？缩减仓位？等待信号？）
+⑤ 结论：链上的情绪对本轮交易是否构成“支持 / 中性 / 压力”
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+        try {
+          const text = await this.ds.call(apiKey, sys, snapshotShort);
+          this.agents.appendMessage("onchain", text);
+        } catch(e) {
+          this.agents.appendMessage("onchain", "⚠ 调用失败：" + e.message);
+        } finally {
+          this.agents.setStatus("onchain","done");
+        }
+      })());
+
+      // 宏观
+      promisesLayer1.push((async () => {
+        this.agents.setStatus("macro","running");
+        const sys = `
+你现在是对冲基金的“宏观分析师”（Macro Analyst）。
+
+虽然你没有真实宏观数据（利率、就业、通胀等），
+但你可以从价格结构、波动、趋势、情绪、节奏中推断出：市场整体的“风险偏好”与“流动性环境”。
+
+请用结构化中文输出：
+
+① 宏观流动性状态（risk-on / risk-off / 中性） + 简短解释
+② 当前加密货币的风险偏好（提升 / 降低 / 中性）
+③ 可能的宏观驱动因素（资金流入？大户避险？流动性不足？情绪退潮？）
+④ 对本轮交易的影响（支持多头？压制多头？偏空？偏观望？）
+⑤ 最终宏观结论：对本策略的“支持 / 中性 / 压力”
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+        try {
+          const text = await this.ds.call(apiKey, sys, snapshotMacro);
+          this.agents.appendMessage("macro", text);
+        } catch(e) {
+          this.agents.appendMessage("macro", "⚠ 调用失败：" + e.message);
+        } finally {
+          this.agents.setStatus("macro","done");
+        }
+      })());
+
+      await Promise.all(promisesLayer1);
+
+      setProgress(25);
+
+      const analystSummary = this.agents.getLayerSummary(1);
+
+      /* ======================= 第 2 层：经理层并行 ======================= */
+      runStatus.textContent = "第 2 层：经理层并行整合...";
+      const managementSystemPrompt = `
+你是一个量化对冲基金的管理层，负责将多位分析师的结论整合为技术总监和基本面总监的报告。
+
+输出严格按照下面结构，用简洁中文条目化表达：
+
+【技术总监】
+1. 技术面方向：（多头 / 空头 / 区间震荡）+ 一句话说明原因
+2. 市场状态（regime）：趋势上涨 / 趋势下跌 / 区间震荡（根据均线、波动、RSI 等）
+3. 关键价位：大致给出支撑区与压力区
+4. 策略与仓位：适合顺势/逆势/区间？建议最大仓位强度（轻 / 中 / 重）
+
+【基本面总监】
+1. 链上环境：偏热 / 中性 / 偏冷（一句话解释）
+2. 宏观环境：risk-on / risk-off / 中性（一句话解释）
+3. Beta 偏好：目前适合提高还是压缩整体风险敞口
+4. 综述：用 2-3 句总结本轮交易在基本面维度的利弊。
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+
+      const managementUserPrompt = `
+下面是短线/趋势/量化/链上/宏观 5 位分析师的结构化摘要，请你整合为技术总监与基本面总监的报告，不要添加多余身份说明：
+
+${analystSummary}`.trim();
+
+      const pTech = (async () => {
+        this.agents.setStatus("tech_manager","running");
+        try {
+          const mgmtContent = await this.ds.call(apiKey, managementSystemPrompt, managementUserPrompt);
+          const techText = (mgmtContent.match(/【技术总监】([\s\S]*?)(?=【基本面总监】|$)/)||[null,mgmtContent])[1]?.trim()||mgmtContent;
+          this.agents.appendMessage("tech_manager", techText);
+          return techText;
+        } catch(e) {
+          const msg = "⚠ 调用失败：" + e.message;
+          this.agents.appendMessage("tech_manager", msg);
+          return msg;
+        } finally {
+          this.agents.setStatus("tech_manager","done");
+        }
+      })();
+
+      const pFund = (async () => {
+        this.agents.setStatus("fund_manager","running");
+        try {
+          const mgmtContent = await this.ds.call(apiKey, managementSystemPrompt, managementUserPrompt);
+          const fundText = (mgmtContent.match(/【基本面总监】([\s\S]*)$/)||[null,mgmtContent])[1]?.trim()||mgmtContent;
+          this.agents.appendMessage("fund_manager", fundText);
+          return fundText;
+        } catch(e) {
+          const msg = "⚠ 调用失败：" + e.message;
+          this.agents.appendMessage("fund_manager", msg);
+          return msg;
+        } finally {
+          this.agents.setStatus("fund_manager","done");
+        }
+      })();
+
+      const [techText, fundText] = await Promise.all([pTech, pFund]);
+
+      setProgress(50);
+
+      /* ======================= 第 3 层：风控（AI + 规则） ======================= */
+      runStatus.textContent = "第 3 层：风控评估 R:R...";
+      this.agents.setStatus("risk","running");
+
+      let entryPrice = (position.entry == null) ? lastPrice : position.entry;
+      let stopLoss, takeProfit;
+
+      if (position.direction === "none" || position.entry == null) {
+        stopLoss   = lastPrice * 0.985;
+        takeProfit = lastPrice * 1.03;
+      } else {
+        if (position.direction === "long") {
+          stopLoss   = Math.min(lastPrice, entryPrice) * 0.985;
+          takeProfit = Math.max(lastPrice, entryPrice) * 1.03;
+        } else {
+          stopLoss   = Math.max(lastPrice, entryPrice) * 1.015;
+          takeProfit = Math.min(lastPrice, entryPrice) * 0.97;
+        }
+      }
+
+      let rr = 0;
+      if (position.direction === "short") {
+        const denom = (stopLoss - entryPrice);
+        rr = (denom !== 0) ? (entryPrice - takeProfit) / denom : 0;
+      } else {
+        const denom = (entryPrice - stopLoss);
+        rr = (denom !== 0) ? (takeProfit - entryPrice) / denom : 0;
+      }
+
+      const riskSystemPrompt = `
+你是一名资深风控经理（Risk Manager），负责审查本轮交易结构。
+请基于市场结构、均线、波动、RSI、regime、经理层观点、AI 假定的止损止盈，
+给出结构化中文分析，不要输出 JSON。
+
+请输出：
+① 风险结构诊断
+② 止损止盈是否稳定
+③ 假突破/震荡/位移风险
+④ 盈亏比 R:R 是否合理
+⑤ 风控态度（支持 / 谨慎 / 否决）
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+
+      const positionSummary = position.direction==="none" || position.entry==null
+        ? "当前无明确持仓。"
+        : `当前持仓为${position.direction==="long"?"做多":"做空"}，开仓价约 ${position.entry}。`;
+
+      const riskUserPrompt = `
+最新价格：${lastPrice}
+入场价：${entryPrice}
+止损：${stopLoss}
+止盈：${takeProfit}
+RR：${rr.toFixed(2)}
+Regime：${regime}
+MA7：${sma7}
+MA25：${sma25}
+RSI14：${rsi14}
+波动率：${volPct.toFixed(2)}%
+
+${positionSummary}
+
+【技术总监】
+${techText}
+
+【基本面总监】
+${fundText}
+
+请按要求输出结构化文本（不要输出 JSON）。
+`.trim();
+
+      let riskText = "";
+      try {
+        riskText = await this.ds.call(apiKey, riskSystemPrompt, riskUserPrompt);
+        this.agents.appendMessage("risk", riskText);
+      } catch(e) {
+        riskText = "⚠ AI 风控调用失败：" + e.message;
+        this.agents.appendMessage("risk", riskText);
+      }
+
+      // 读取当前 UI 选择的风控模式
+      const riskLevel = document.getElementById("riskLevel").value;
+      const cfg = RISK_CONFIGS[riskLevel];
+
+      let allow = true;
+
+      // 最大允许止损偏离（越激进容忍越高）
+      if (Math.abs(entryPrice - stopLoss) / entryPrice > cfg.maxSLDeviation)
+        allow = false;
+
+      // 最低止盈偏离（稳健要求更高的 TP 空间）
+      if (Math.abs(takeProfit - entryPrice) / entryPrice < cfg.minTPDeviation)
+        allow = false;
+
+      // 最低盈亏比 R:R
+      if (rr < cfg.minRR)
+        allow = false;
+
+
+      this.agents.appendMessage(
+        "risk",
+        allow
+          ? "【规则风控】通过（满足最低风控要求）"
+          : "【规则风控】未通过 —— 若 CEO 想建仓，将被强制 action=FLAT、position_size=0"
+      );
+      this.agents.setStatus("risk","done");
+
+      const riskSummary = `【风控】\n${riskText}\n规则判断：${allow ? "通过" : "未通过"}`;
+      
+      setProgress(75);
+
+      /* ======================= 第 4 层：CEO JSON 决策 ======================= */
+      runStatus.textContent = "第 4 层：CEO 综合给出 JSON 决策...";
+      this.agents.setStatus("ceo","running");
+
+      const historyArr = this.history.load();
+      const historyText = this.history.summarize(historyArr);
+      const managerSummary = `【技术总监】\n${techText}\n\n【基本面总监】\n${fundText}`.trim();
+      const analystLayerSummary = analystSummary;
+
+      const ceoSystemPrompt = `
+你是一个加密货币对冲基金的 CEO，手里有多智能体给出的综合结论与历史决策统计。
+
+你必须输出一个 JSON 对象（不要有多余文字），字段定义如下：
+
+{
+  "action": "LONG" | "SHORT" | "FLAT",
+  "entry": number,
+  "stop_loss": number,
+  "take_profit": number,
+  "confidence": number,          // 0-1
+  "technical_score": number,     // 0-1，技术信号质量
+  "fundamental_score": number,   // 0-1，基本面支持度
+  "risk_score": number,          // 0-1，风险控制质量（越高越稳）
+  "position_size": number,       // 0-1，建议最大仓位比例（0 表示不入场）
+  "regime": "trend_up" | "trend_down" | "range" | "neutral",
+  "scenarios": {
+    "bull": "如果出现什么信号，你会如何调整策略",
+    "base": "在当前环境下你的基准情景是什么",
+    "bear": "如果风险情景发生，你会如何控制损失"
+  },
+  "summary": "用 2-4 句中文，给交易员看的执行指引"
+}
+
+强约束：
+- 如果你认为优势极弱或风控极不满意，应给出 action="FLAT"，且 position_size=0。
+- 如果 R:R 一般但方向尚可，可以给出小仓位（如 0.05~0.2）。
+- 如果技术、基本面、风控都较好，才可以给出中等仓位（如 0.3~0.5）；极少数情况下可以更高。
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+
+      const ceoUserPrompt = `
+交易对：${symbol}
+最新价格约：${lastPrice.toFixed(2)} USDT
+市场状态（regime 粗判断）：${regime}
+历史决策统计：${historyText}
+${positionSummary}
+
+【第 1 层：分析师】
+${analystLayerSummary}
+
+【第 2 层：经理层】
+${managerSummary}
+
+【第 3 层：风控】
+${riskSummary}
+
+请严格返回单一 JSON 对象，字段与含义见 system prompt。`.trim();
+
+      let ceoRaw = "";
+      let ceoJson = {};
+      try {
+        ceoRaw = await this.ds.call(apiKey, ceoSystemPrompt, ceoUserPrompt);
+        const jsonMatch = ceoRaw.match(/\{[\s\S]*\}/);
+        if(jsonMatch){
+          try { ceoJson = JSON.parse(jsonMatch[0]); }
+          catch(e){ ceoJson = {error:"解析 JSON 失败",raw:ceoRaw}; }
+        } else {
+          ceoJson = {error:"未找到 JSON", raw:ceoRaw};
+        }
+      } catch(e) {
+        ceoRaw = "⚠ CEO 调用失败：" + e.message;
+        ceoJson = {error:"调用失败", raw:ceoRaw};
+      }
+
+      this.agents.appendMessage("ceo", ceoRaw);
+      this.agents.setStatus("ceo","done");
+
+      // 风控规则兜底（修改 CEO 决策）
+      if (!allow) {
+        ceoJson.action = "FLAT";
+        ceoJson.position_size = 0;
+      } else {
+        if (ceoJson.position_size && ceoJson.position_size > 0.4) {
+          ceoJson.position_size = 0.4;
+        }
+      }
+
+      // 展示 CEO JSON
+      decisionBlock.style.display = "block";
+      decisionJsonEl.textContent = JSON.stringify(ceoJson, null, 2);
+      if(ceoJson && ceoJson.action){
+        const conf = ceoJson.confidence!=null ? (ceoJson.confidence*100).toFixed(0)+"%" : "N/A";
+        const reg  = ceoJson.regime || regime || "N/A";
+        const pos  = ceoJson.position_size!=null ? (ceoJson.position_size*100).toFixed(0)+"%" : "N/A";
+        decisionMeta.textContent = `Action: ${ceoJson.action} · 信心: ${conf} · Regime: ${reg} · 仓位: ${pos}`;
+      }else{
+        decisionMeta.textContent = "未能解析出明确 action，请查看原始返回。";
+      }
+
+      // 写入历史
+      if(ceoJson && ceoJson.action){
+        this.history.add(symbol, lastPrice, ceoJson);
+      }
+
+      /* ======================= CEO 决策解释 ======================= */
+      try {
+        runStatus.textContent = "第 4 层补充：CEO 决策解释生成中...";
+        const explanationSystemPrompt = `
+你现在扮演交易部门负责人，需要用「清晰、结构化的中文」向交易员解释 CEO 的交易决策。
+
+请基于：
+- 多位分析师的结论
+- 技术总监 & 基本面总监的总结
+- 风控经理的 R:R 评估
+- CEO 的 JSON 决策（含 action / position_size / scores / regime / scenarios 等）
+
+输出一段「面向交易员的说明」，风格要求：
+- 用小标题和编号（①②③④…）分段
+- 用简短句子说明“为什么是这个方向 / 这个仓位 / 不交易也算一种决策”
+- 明确指出：关键技术位、基本面要点、风控考虑、未来触发条件
+- 结尾部分给出一句「执行建议」，帮助交易员快速理解该怎么做
+
+不要输出 JSON，不要复述原始文档，直接给解释文本。
+
+【知识库（自动筛选）】
+${kbJson}
+`.trim();
+
+        const explanationUserPrompt = `
+下面是本轮多智能体输出的关键内容（请通读后给出解释）：
+
+【分析师摘要】
+${analystLayerSummary}
+
+【经理层摘要】
+${managerSummary}
+
+【风控摘要】
+${riskSummary}
+
+【CEO JSON 决策】
+${JSON.stringify(ceoJson,null,2)}
+
+请按照要求，给出一段结构化的中文解释。`.trim();
+
+        const explanationTextRaw = await this.ds.call(apiKey, explanationSystemPrompt, explanationUserPrompt);
+        const html = explanationTextRaw
+          .replace(/\n{2,}/g,"\n\n")
+          .split("\n")
+          .map(line=>line.trim().length===0 ? "<br>" : line.replace(/^\s*[-•]/,"• "))
+          .join("<br>");
+        ceoExplainText.innerHTML = html;
+        ceoExplainBlock.style.display = "block";
+      } catch(e) {
+        console.warn("生成 CEO 决策解释失败：", e.message);
+      }
+
+      runStatus.textContent = "本轮多智能体并行 + 知识库驱动分析完成 ✅";
+      setProgress(100);
+      hideProgressBar();
+
+    } catch(e) {
+      console.error(e);
+      runStatus.textContent = "运行过程中发生错误："+e.message;
+      alert("运行出错："+e.message);
+      hideProgressBar();
+    } finally {
+      startBtn.disabled = false;
+    }
+  }
+}
+
+/* ======================= 初始化 ======================= */
+
+window.addEventListener("load", () => {
+  const agentManager   = new AgentManager(agents, "agentsContainer");
+  const chartManager   = new ChartManager("chart");
+  const historyManager = new HistoryManager();
+  const dsClient       = new DeepSeekClient(10);  // High 并发
+
+  chartManager.init();
+  agentManager.reset();
+  historyManager.render(historyManager.load());
+
+  const runner = new WorkflowRunner(agentManager, chartManager, historyManager, dsClient);
+
+  // 自动刷新行情
+  runner.startAutoRefresh();
+
+  document.getElementById("startBtn").addEventListener("click", () => runner.run());
+
+  document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+    if (!confirm("确定要清空所有历史决策记录吗？\n此操作不可撤销。")) return;
+    historyManager.clear();
+    historyManager.render([]);
+  });
+});
+</script>
+</body>
+</html>
